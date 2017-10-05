@@ -1,9 +1,9 @@
 ---
 swagger: "2.0"
 info:
-  description: "The REST API for the Recommender Skeleton"
+  description: "The REST API for the Jiminy Recommender"
   version: "0.0.0"
-  title: "Recommender REST Server"
+  title: "Jiminy Recommender REST Server"
 consumes:
 - "application/json"
 produces:
@@ -64,6 +64,61 @@ definitions:
           - version
     required:
       - application
+  PredictionRequest:
+    description: |-
+      A Request for new predictions
+    properties:
+      user:
+        description: |-
+          The user identifier for the prediction
+        type: string
+      products:
+        description: |-
+          An array of product identifiers for prediction
+        type: array
+        minItems: 1
+        items:
+          type: string
+    required:
+      - user
+      - products
+  PredictionResponse:
+    description: |-
+      Information about a specific prediction request
+    properties:
+      prediction:
+        properties:
+          user:
+            description: |-
+              The user identifier for the prediction
+            type: string
+          id:
+            description: |-
+              A unique identifier for this prediction set
+            type: string
+          products:
+            description: |-
+              A list of the ratings per product
+            type: array
+            minItems: 0
+            items:
+              properties:
+                id:
+                  description: |-
+                    The product identifier for this prediction
+                  type: string
+                rating:
+                  description: |-
+                    The predicted rating for this product
+                  type: number
+                  format: float
+              required:
+                - id
+                - rating
+        required:
+          - user
+          - id
+          - products
 
 paths:
   /:
@@ -82,8 +137,73 @@ paths:
           examples:
             application/json:
               application:
-                name: recommender-rest-skeleton
+                name: jiminy-recommender
                 version: 0.0.0
+        default:
+          description: |-
+            Unexpected error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+  /predictions:
+    post:
+      description: |-
+        Request a new prediction
+      operationId: postPredictions
+      tags:
+        - predictions
+      parameters:
+        - name: predictionRequest
+          in: body
+          description: |-
+            a request for a new prediction
+          required: true
+          schema:
+            $ref: "#/definitions/PredictionRequest"
+      responses:
+        "201":
+          description: |-
+            Prediction received response
+          schema:
+            $ref: "#/definitions/PredictionResponse"
+          examples:
+            application/json:
+              prediction:
+                user: 12345
+                id: 1
+                products: []
+        default:
+          description: |-
+            Unexpected error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+  /predictions/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: |-
+          The unique identifier for the prediction
+        required: true
+        type: string
+    get:
+      description: |-
+        Return detailed information about a specific prediction
+      operationId: getPrediction
+      tags:
+        - predictions
+      responses:
+        "200":
+          description: |-
+            Prediction detailed response
+          schema:
+            $ref: "#/definitions/PredictionResponse"
+          examples:
+            application/json:
+              prediction:
+                user: 12345
+                id: 1
+                products:
+                  - id: 6789
+                    rating: 3.5
         default:
           description: |-
             Unexpected error

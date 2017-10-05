@@ -1,5 +1,6 @@
-# recommender-rest-skeleton
-a skeleton framework for a spark based recommendation server
+# Jiminy Recommender
+
+This is the recommendation engine for the Jiminy project.
 
 ## Model reading
 
