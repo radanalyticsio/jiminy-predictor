@@ -3,6 +3,7 @@
 Predictions contains the functions and classes related to the Apache Spark
 based prediction routines.
 """
+from pyspark.mllib.recommendation import MatrixFactorizationModel
 
 
 def loop(request_q, response_q):
@@ -13,9 +14,12 @@ def loop(request_q, response_q):
     the response_q queue.
     """
     # just leaving these here for future reference (elmiko)
-    # from pyspark import sql as pysql
-    # spark = pysql.SparkSession.builder.appName("JiminyRec").getOrCreate()
-    # sc = spark.sparkContext
+    from pyspark import sql as pysql
+    spark = pysql.SparkSession.builder.appName("JiminyRec").getOrCreate()
+    sc = spark.sparkContext
+
+    # load a pre-trained model
+    model = MatrixFactorizationModel.load(sc, './models/trained_model')
 
     response_q.put('ready')  # let the main process know we are ready to start
 
@@ -24,6 +28,11 @@ def loop(request_q, response_q):
         if req == 'stop':
             break
         resp = req
+        # make predictions
+        items = sc.parallelize([(req['user'], p['id']) for p in req['products']])
+        predictions = model.predictAll(items).map(lambda x: (x[1], x[2])).collect()
+        print(predictions)
+
         resp.update(products=
-                    [{'id': p['id'], 'rating': 5.0} for p in req['products']])
+                    [{'id': item[0], 'rating': item[1]} for item in predictions])
         response_q.put(resp)

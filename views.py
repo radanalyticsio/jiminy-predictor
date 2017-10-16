@@ -26,6 +26,7 @@ class Predictions(fv.MethodView):
 
     def post(self):
         data = json.loads(fr.data)
+        print(data)
         r_dict = {
             'user': data['user'],
             'id': uuid.uuid4().hex,
