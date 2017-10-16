@@ -3,7 +3,8 @@
 Predictions contains the functions and classes related to the Apache Spark
 based prediction routines.
 """
-from pyspark.mllib.recommendation import MatrixFactorizationModel
+
+from storage import ParquetModelReader
 
 
 def loop(request_q, response_q):
@@ -18,8 +19,8 @@ def loop(request_q, response_q):
     spark = pysql.SparkSession.builder.appName("JiminyRec").getOrCreate()
     sc = spark.sparkContext
 
-    # load a pre-trained model
-    model = MatrixFactorizationModel.load(sc, './models/trained_model')
+    # load a pre-trained model from Parquet
+    model = ParquetModelReader(sc=sc, path='./models/trained_model').read()
 
     response_q.put('ready')  # let the main process know we are ready to start
 
