@@ -20,7 +20,7 @@ def loop(request_q, response_q):
     sc = spark.sparkContext
 
     # load a pre-trained model from Parquet
-    model = ParquetModelReader(sc=sc, path='./models/trained_model').read()
+    model = ParquetModelReader(sc=sc, path='./models/trained_model', version=1, data_version=1).read()
 
     response_q.put('ready')  # let the main process know we are ready to start
 
@@ -31,8 +31,7 @@ def loop(request_q, response_q):
         resp = req
         # make predictions
         items = sc.parallelize([(req['user'], p['id']) for p in req['products']])
-        predictions = model.predictAll(items).map(lambda x: (x[1], x[2])).collect()
-        print(predictions)
+        predictions = model.als.predictAll(items).map(lambda x: (x[1], x[2])).collect()
 
         resp.update(products=
                     [{'id': item[0], 'rating': item[1]} for item in predictions])

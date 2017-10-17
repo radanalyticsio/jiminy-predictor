@@ -9,6 +9,7 @@ import threading as t
 
 import errors
 
+
 def updater(response_q, storage):
     """update the cache with predictions
 
@@ -65,6 +66,7 @@ class MemoryCache(Cache):
     This cache will not retain information on restart, please use it
     responsibly.
     """
+
     def __init__(self):
         self.data = {}
         self.lock = t.Lock()

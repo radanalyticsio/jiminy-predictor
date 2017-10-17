@@ -8,6 +8,9 @@ import errors
 
 
 class ServerInfo(fv.MethodView):
+    def __init__(self):
+        pass
+
     info = {
         'application': {
             'name': 'jiminy-recommender',
@@ -26,7 +29,7 @@ class Predictions(fv.MethodView):
 
     def post(self):
         data = json.loads(fr.data)
-        print(data)
+
         r_dict = {
             'user': data['user'],
             'id': uuid.uuid4().hex,
@@ -34,6 +37,7 @@ class Predictions(fv.MethodView):
                 {'id': p_id, 'rating': 0.0} for p_id in data['products']
             ]
         }
+
         try:
             self.storage.store(r_dict)
             self.request_q.put(r_dict)
