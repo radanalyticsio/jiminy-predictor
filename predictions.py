@@ -29,10 +29,18 @@ def loop(request_q, response_q):
         if req == 'stop':
             break
         resp = req
-        # make predictions
-        items = sc.parallelize([(req['user'], p['id']) for p in req['products']])
-        predictions = model.als.predictAll(items).map(lambda x: (x[1], x[2])).collect()
 
-        resp.update(products=
-                    [{'id': item[0], 'rating': item[1]} for item in predictions])
-        response_q.put(resp)
+        if req['type'] == 'rank':
+            recommendations = model.als.recommendProducts(req['user'], req['topk'])
+            resp.update(products=
+                        [{'id': recommendation[1], 'rating': recommendation[2]} for recommendation in recommendations])
+            response_q.put(resp)
+
+        elif req['type'] == 'rating':
+            # make predictions
+            items = sc.parallelize([(req['user'], p['id']) for p in req['products']])
+            predictions = model.als.predictAll(items).map(lambda x: (x[1], x[2])).collect()
+
+            resp.update(products=
+                        [{'id': item[0], 'rating': item[1]} for item in predictions])
+            response_q.put(resp)

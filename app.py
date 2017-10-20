@@ -36,13 +36,23 @@ def main():
 
     # configure routes and start the service
     app.add_url_rule('/', view_func=views.ServerInfo.as_view('server'))
-    app.add_url_rule('/predictions',
-                     view_func=views.Predictions.as_view('predictions',
+    app.add_url_rule('/predictions/ratings',
+                     view_func=views.PredictionsRatings.as_view('rating_prediction',
                                                          storage,
                                                          request_q))
-    app.add_url_rule('/predictions/<string:p_id>',
-                     view_func=views.PredictionDetail.as_view('prediction',
+    app.add_url_rule('/predictions/ratings/<string:p_id>',
+                     view_func=views.PredictionDetail.as_view('rating_predictions',
                                                               storage))
+
+    app.add_url_rule('/predictions/ranks',
+                     view_func=views.PredictionsRanks.as_view('rank_prediction',
+                                                         storage,
+                                                         request_q))
+
+    app.add_url_rule('/predictions/ranks/<string:p_id>',
+                     view_func=views.PredictionDetail.as_view('rank_predictions',
+                                                              storage))
+
     app.run(host='0.0.0.0', port=8080)
     request_q.put('stop')
     response_q.put('stop')
