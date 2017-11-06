@@ -1,3 +1,3 @@
-# Jiminy Recommender
+# Jiminy Predictor
 
-This is the recommendation engine for the Jiminy project.
+This is the prediction service for the Jiminy project.
