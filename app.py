@@ -8,6 +8,10 @@ import caches
 import predictions
 import views
 
+import os
+os.environ['PYSPARK_SUBMIT_ARGS'] = '--jars ./libs/spark-als-serialiser_2.11-0.1.jar pyspark-shell'
+
+
 
 def main():
     """start the http service"""

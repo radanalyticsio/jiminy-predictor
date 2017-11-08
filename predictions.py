@@ -4,7 +4,7 @@ Predictions contains the functions and classes related to the Apache Spark
 based prediction routines.
 """
 
-from storage import ParquetModelReader
+import storage
 
 
 def loop(request_q, response_q):
@@ -20,7 +20,9 @@ def loop(request_q, response_q):
     sc = spark.sparkContext
 
     # load a pre-trained model from Parquet
-    model = ParquetModelReader(sc=sc, path='./models/trained_model', version=1, data_version=1).read()
+    # model = ParquetModelReader(sc=sc, path='./models/trained_model', version=1, data_version=1).read()
+
+    model = storage.ModelFactory.fromURL(sc, "mongodb://localhost:27017").read(version=1)
 
     response_q.put('ready')  # let the main process know we are ready to start
 
