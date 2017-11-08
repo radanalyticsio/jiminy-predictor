@@ -5,6 +5,10 @@ based prediction routines.
 """
 
 import storage
+import os
+
+# e.g. MODEL_STORE_URI=mongodb://localhost:27017
+MODEL_STORE_URI = os.environ['MODEL_STORE_URI']
 
 
 def loop(request_q, response_q):
@@ -19,8 +23,8 @@ def loop(request_q, response_q):
     spark = pysql.SparkSession.builder.appName("JiminyRec").getOrCreate()
     sc = spark.sparkContext
 
-    # load the latest model from MongoDB
-    model = storage.ModelFactory.fromURL(sc, "mongodb://localhost:27017").readLatest()
+    # load the latest model from the model store
+    model = storage.ModelFactory.fromURL(sc, MODEL_STORE_URI).readLatest()
 
     response_q.put('ready')  # let the main process know we are ready to start
 
