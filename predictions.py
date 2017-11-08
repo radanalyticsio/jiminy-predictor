@@ -19,10 +19,8 @@ def loop(request_q, response_q):
     spark = pysql.SparkSession.builder.appName("JiminyRec").getOrCreate()
     sc = spark.sparkContext
 
-    # load a pre-trained model from Parquet
-    # model = ParquetModelReader(sc=sc, path='./models/trained_model', version=1, data_version=1).read()
-
-    model = storage.ModelFactory.fromURL(sc, "mongodb://localhost:27017").read(version=1)
+    # load the latest model from MongoDB
+    model = storage.ModelFactory.fromURL(sc, "mongodb://localhost:27017").readLatest()
 
     response_q.put('ready')  # let the main process know we are ready to start
 
