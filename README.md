@@ -4,5 +4,8 @@ This is the recommendation engine for the Jiminy project.
 
 ## Model reading
 
-For testing purposes, at the moment the recommender only reads an ALS trained model from disk
-(located at `./models/trained_model`)
+The model is read from the backend specified by the environment variable `$MODEL_STORE_URI`. For instance
+
+```bash
+export $MODEL_STORE_URI="mongodb://user:passwrd@127.0.0.1:27017"
+```
