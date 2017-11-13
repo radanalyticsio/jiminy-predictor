@@ -8,8 +8,6 @@ import errors
 
 
 class ServerInfo(fv.MethodView):
-    def __init__(self):
-        pass
 
     info = {
         'application': {

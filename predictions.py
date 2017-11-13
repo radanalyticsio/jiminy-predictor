@@ -6,9 +6,7 @@ based prediction routines.
 
 import storage
 import os
-
-# e.g. MODEL_STORE_URI=mongodb://localhost:27017
-MODEL_STORE_URI = os.environ['MODEL_STORE_URI']
+from pyspark import sql as pysql
 
 
 def loop(request_q, response_q):
@@ -18,8 +16,12 @@ def loop(request_q, response_q):
     will wait for new requests on the request_q queue and write responses on
     the response_q queue.
     """
+
+    # Get the model store backend, e.g. MODEL_STORE_URI=mongodb://localhost:27017
+    MODEL_STORE_URI = os.environ['MODEL_STORE_URI']
+
     # just leaving these here for future reference (elmiko)
-    from pyspark import sql as pysql
+
     spark = pysql.SparkSession.builder.appName("JiminyRec").getOrCreate()
     sc = spark.sparkContext
 

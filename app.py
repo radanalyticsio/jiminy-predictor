@@ -3,18 +3,19 @@ import multiprocessing as mp
 import threading as t
 
 import flask
+import os
 
 import caches
 import predictions
 import views
 
-import os
-os.environ['PYSPARK_SUBMIT_ARGS'] = '--jars ./libs/spark-als-serialiser_2.11-0.1.jar pyspark-shell'
-
-
 
 def main():
     """start the http service"""
+
+    # add the ALS type conversion Scala helper jar
+    os.environ['PYSPARK_SUBMIT_ARGS'] = '--jars ./libs/spark-als-serialiser_2.11-0.1.jar pyspark-shell'
+
     # create the flask app object
     app = flask.Flask(__name__)
     # change this value for production environments
