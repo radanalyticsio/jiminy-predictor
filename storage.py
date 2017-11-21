@@ -79,7 +79,9 @@ class MongoModelReader(ModelReader):
 
         features = self.extractFeatures(data=data)
 
-        return self.instantiate(rank=2,
+        rank = data[0]['rank']
+
+        return self.instantiate(rank=rank,
                                 version=version,
                                 userFeatures=features['userFeatures'],
                                 productFeatures=features['productFeatures'])
@@ -89,9 +91,12 @@ class MongoModelReader(ModelReader):
 
         features = MongoModelReader.extractFeatures(data=data)
 
-        # TODO: get version from db
-        return self.instantiate(rank=2,
-                                version=1,
+        rank = data[0]['rank']
+
+        version = data[0]['id']
+
+        return self.instantiate(rank=rank,
+                                version=version,
                                 userFeatures=features['userFeatures'],
                                 productFeatures=features['productFeatures'])
 
