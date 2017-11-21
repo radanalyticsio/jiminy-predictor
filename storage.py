@@ -61,7 +61,7 @@ class ModelReader:
         :return: A `Model` instance
         """
         jvm = self._sc._gateway.jvm
-        als_model = jvm.org.ruivieira.spark.als.ALSSerialiser.instantiateModel(self._sc._jsc, rank, userFeatures,
+        als_model = jvm.io.radanalytics.als.ALSSerializer.instantiateModel(self._sc._jsc, rank, userFeatures,
                                                                                productFeatures)
         wrapper = jvm.org.apache.spark.mllib.api.python.MatrixFactorizationModelWrapper(als_model)
         model = Model(sc=self._sc, als_model=MatrixFactorizationModel(wrapper), version=version, data_version=1)
