@@ -62,7 +62,7 @@ class ModelReader:
         """
         jvm = self._sc._gateway.jvm
         als_model = jvm.io.radanalytics.als.ALSSerializer.instantiateModel(self._sc._jsc, rank, userFeatures,
-                                                                               productFeatures)
+                                                                           productFeatures)
         wrapper = jvm.org.apache.spark.mllib.api.python.MatrixFactorizationModelWrapper(als_model)
         model = Model(sc=self._sc, als_model=MatrixFactorizationModel(wrapper), version=version, data_version=1)
         return model
@@ -77,42 +77,36 @@ class MongoModelReader(ModelReader):
     def read(self, version):
         data = list(self._db.models.find({'id': version}))
 
-        features = self.extractFeatures(data=data)
-
         rank = data[0]['rank']
+
+        userFactors = self.extractFeatures(list(self._db.userFactors.find({'model_id': version})))
+
+        productFactors = self.extractFeatures(list(self._db.productFactors.find({'model_id': version})))
 
         return self.instantiate(rank=rank,
                                 version=version,
-                                userFeatures=features['userFeatures'],
-                                productFeatures=features['productFeatures'])
+                                userFeatures=userFactors,
+                                productFeatures=productFactors)
 
     def readLatest(self):
         data = list(self._db.models.find().sort('created', pymongo.DESCENDING))
 
-        features = MongoModelReader.extractFeatures(data=data)
+        version = data[0]['id']
 
         rank = data[0]['rank']
 
-        version = data[0]['id']
+        userFactors = self.extractFeatures(list(self._db.userFactors.find({'model_id': version})))
+
+        productFactors = self.extractFeatures(list(self._db.productFactors.find({'model_id': version})))
 
         return self.instantiate(rank=rank,
                                 version=version,
-                                userFeatures=features['userFeatures'],
-                                productFeatures=features['productFeatures'])
+                                userFeatures=userFactors,
+                                productFeatures=productFactors)
 
     @staticmethod
     def extractFeatures(data):
-        _userFeatures = []
-
-        for item in data[0]['userFeatures']:
-            _userFeatures.append((item['id'], item['features'],))
-
-        _productFeatures = []
-
-        for item in data[0]['productFeatures']:
-            _productFeatures.append((item['id'], item['features'],))
-
-        return {'userFeatures': _userFeatures, 'productFeatures': _productFeatures}
+        return [(item['id'], item['features'],) for item in data]
 
 
 class ParquetModelReader(ModelReader):
@@ -126,4 +120,3 @@ class ParquetModelReader(ModelReader):
 
     def readLatest(self):
         pass
-
