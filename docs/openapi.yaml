@@ -2,7 +2,7 @@
 swagger: "2.0"
 info:
   description: "The REST API for the Jiminy Recommender"
-  version: "0.0.0"
+  version: "0.0.1"
   title: "Jiminy Recommender REST Server"
 consumes:
 - "application/json"
@@ -64,9 +64,9 @@ definitions:
           - version
     required:
       - application
-  PredictionRequest:
+  PredictionRatingsRequest:
     description: |-
-      A Request for new predictions
+      A Request for new ratings predictions
     properties:
       user:
         description: |-
@@ -79,10 +79,15 @@ definitions:
         minItems: 1
         items:
           type: string
+      type:
+        description: |-
+          Request type metadata
+        type: string
     required:
       - user
       - products
-  PredictionResponse:
+      - type
+  PredictionRatingsResponse:
     description: |-
       Information about a specific prediction request
     properties:
@@ -115,11 +120,92 @@ definitions:
               required:
                 - id
                 - rating
+          type:
+            description: |-
+              Request type metadata
+            type: string
         required:
           - user
           - id
           - products
-
+          - type
+  PredictionRankingsRequest:
+    description: |-
+      A Request for new top-k predictions
+    properties:
+      user:
+        description: |-
+          The user identifier for the prediction
+        type: string
+      topk:
+        description: |-
+          The number of top ratings required
+        type: integer
+        minimum: 1
+      products:
+        description: |-
+          An array of product identifiers for prediction
+        type: array
+        minItems: 1
+        items:
+          type: string
+      type:
+        description: |-
+          Request type metadata
+        type: string
+    required:
+      - user
+      - topk
+      - products
+      - type
+  PredictionRankingsResponse:
+    description: |-
+      Information about a specific ranking prediction request
+    properties:
+      prediction:
+        properties:
+          user:
+            description: |-
+              The user identifier for the prediction
+            type: string
+          id:
+            description: |-
+              A unique identifier for this prediction set
+            type: string
+          topk:
+            description: |-
+              The number of top ranking products request
+            type: integer
+            minimum: 1
+          products:
+            description: |-
+              A (ordered) list of the ratings per product
+            type: array
+            minItems: 0
+            items:
+              properties:
+                id:
+                  description: |-
+                    The product identifier for this prediction
+                  type: string
+                rating:
+                  description: |-
+                    The predicted rating for this product
+                  type: number
+                  format: float
+              required:
+                - id
+                - rating
+          type:
+            description: |-
+              Request type metadata
+            type: string
+        required:
+          - user
+          - id
+          - topk
+          - products
+          - type
 paths:
   /:
     get:
@@ -144,44 +230,113 @@ paths:
             Unexpected error
           schema:
             $ref: "#/definitions/ErrorResponse"
-  /predictions:
+  /predictions/ratings:
     post:
       description: |-
-        Request a new prediction
-      operationId: postPredictions
+        Request a new ratings prediction
+      operationId: postRatingsPredictions
       tags:
         - predictions
       parameters:
-        - name: predictionRequest
+        - name: ratingPredictionRequest
           in: body
           description: |-
-            a request for a new prediction
+            a request for a new ratings prediction
           required: true
           schema:
-            $ref: "#/definitions/PredictionRequest"
+            $ref: "#/definitions/PredictionRatingsRequest"
       responses:
         "201":
           description: |-
             Prediction received response
           schema:
-            $ref: "#/definitions/PredictionResponse"
+            $ref: "#/definitions/PredictionRatingsResponse"
           examples:
             application/json:
               prediction:
                 user: 12345
                 id: 1
                 products: []
+                type: "rating"
         default:
           description: |-
             Unexpected error
           schema:
             $ref: "#/definitions/ErrorResponse"
-  /predictions/{id}:
+  /predictions/ratings/{id}:
     parameters:
       - name: id
         in: path
         description: |-
-          The unique identifier for the prediction
+          The unique identifier for the ratings prediction
+        required: true
+        type: string
+    get:
+      description: |-
+        Return detailed information about a specific prediction
+      operationId: getRatingsPrediction
+      tags:
+        - predictions
+      responses:
+        "200":
+          description: |-
+            Prediction detailed response
+          schema:
+            $ref: "#/definitions/PredictionRatingsResponse"
+          examples:
+            application/json:
+              prediction:
+                user: 12345
+                id: 1
+                products:
+                  - id: 6789
+                    rating: 3.5
+                type: "rating"
+        default:
+          description: |-
+            Unexpected error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+  /predictions/ranks:
+    post:
+      description: |-
+        Request a new top-k prediction
+      operationId: postRankingPredictions
+      tags:
+        - predictions
+      parameters:
+        - name: rankingPredictionRequest
+          in: body
+          description: |-
+            a request for a new prediction
+          required: true
+          schema:
+            $ref: "#/definitions/PredictionRankingsRequest"
+      responses:
+        "201":
+          description: |-
+            Prediction received response
+          schema:
+            $ref: "#/definitions/PredictionRankingsResponse"
+          examples:
+            application/json:
+              prediction:
+                user: 12345
+                id: 1
+                products: []
+                topk: 10
+                type: "rank"
+        default:
+          description: |-
+            Unexpected error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+  /predictions/ranks/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: |-
+          The unique identifier for the top-k prediction
         required: true
         type: string
     get:
@@ -195,7 +350,7 @@ paths:
           description: |-
             Prediction detailed response
           schema:
-            $ref: "#/definitions/PredictionResponse"
+            $ref: "#/definitions/PredictionRankingsResponse"
           examples:
             application/json:
               prediction:
@@ -204,8 +359,11 @@ paths:
                 products:
                   - id: 6789
                     rating: 3.5
+                topk: 1
+                type: "rank"
         default:
           description: |-
             Unexpected error
           schema:
             $ref: "#/definitions/ErrorResponse"
+
