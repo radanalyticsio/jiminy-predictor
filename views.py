@@ -33,8 +33,7 @@ class PredictionsRatings(fv.MethodView):
             'id': uuid.uuid4().hex,
             'products': [
                 {'id': p_id, 'rating': 0.0} for p_id in data['products']
-            ],
-            'type': 'rating'
+            ]
         }
 
         try:
@@ -62,10 +61,7 @@ class PredictionsRanks(fv.MethodView):
         r_dict = {
             'user': data['user'],
             'id': uuid.uuid4().hex,
-            'topk': data['topk'],
-            'products': [{'id': p_id, 'rating': 0.0} for p_id in range(20)],
-            'type': 'rank'
-
+            'topk': data['topk']
         }
 
         try:

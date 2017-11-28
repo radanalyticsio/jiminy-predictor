@@ -44,14 +44,15 @@ def loop(request_q, response_q):
             break
         resp = req
 
-        if req['type'] == 'rank':
+        if 'topk' in req:
+            # make rank predictions
             recommendations = model.als.recommendProducts(req['user'], req['topk'])
             resp.update(products=
                         [{'id': recommendation[1], 'rating': recommendation[2]} for recommendation in recommendations])
             response_q.put(resp)
 
-        elif req['type'] == 'rating':
-            # make predictions
+        else:
+            # make rating predictions
             items = sc.parallelize([(req['user'], p['id']) for p in req['products']])
             predictions = model.als.predictAll(items).map(lambda x: (x[1], x[2])).collect()
 
