@@ -26,11 +26,19 @@ def loop(request_q, response_q):
     sc = spark.sparkContext
 
     # load the latest model from the model store
-    model = storage.ModelFactory.fromURL(sc, MODEL_STORE_URI).readLatest()
+    model_reader = storage.ModelFactory.fromURL(sc=sc, url=MODEL_STORE_URI)
+
+    model = model_reader.readLatest()
 
     response_q.put('ready')  # let the main process know we are ready to start
 
     while True:
+
+        # check for new models in the model store
+        latest_id = model_reader.latestId()
+        if model.version != latest_id:
+            model = model_reader.read(version=latest_id)
+
         req = request_q.get()
         if req == 'stop':
             break
@@ -50,3 +58,4 @@ def loop(request_q, response_q):
             resp.update(products=
                         [{'id': item[0], 'rating': item[1]} for item in predictions])
             response_q.put(resp)
+

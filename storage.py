@@ -104,6 +104,11 @@ class MongoModelReader(ModelReader):
                                 userFeatures=userFactors,
                                 productFeatures=productFactors)
 
+    def latestId(self):
+        data = list(self._db.models.find().sort('created', pymongo.DESCENDING))
+
+        return data[0]['id']
+
     @staticmethod
     def extractFeatures(data):
         return [(item['id'], item['features'],) for item in data]
