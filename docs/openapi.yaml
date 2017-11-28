@@ -79,14 +79,9 @@ definitions:
         minItems: 1
         items:
           type: string
-      type:
-        description: |-
-          Request type metadata
-        type: string
     required:
       - user
       - products
-      - type
   PredictionRatingsResponse:
     description: |-
       Information about a specific prediction request
@@ -120,15 +115,10 @@ definitions:
               required:
                 - id
                 - rating
-          type:
-            description: |-
-              Request type metadata
-            type: string
         required:
           - user
           - id
           - products
-          - type
   PredictionRankingsRequest:
     description: |-
       A Request for new top-k predictions
@@ -142,22 +132,9 @@ definitions:
           The number of top ratings required
         type: integer
         minimum: 1
-      products:
-        description: |-
-          An array of product identifiers for prediction
-        type: array
-        minItems: 1
-        items:
-          type: string
-      type:
-        description: |-
-          Request type metadata
-        type: string
     required:
       - user
       - topk
-      - products
-      - type
   PredictionRankingsResponse:
     description: |-
       Information about a specific ranking prediction request
@@ -196,16 +173,11 @@ definitions:
               required:
                 - id
                 - rating
-          type:
-            description: |-
-              Request type metadata
-            type: string
         required:
           - user
           - id
           - topk
           - products
-          - type
 paths:
   /:
     get:
@@ -291,7 +263,6 @@ paths:
                 products:
                   - id: 6789
                     rating: 3.5
-                type: "rating"
         default:
           description: |-
             Unexpected error
@@ -323,9 +294,7 @@ paths:
               prediction:
                 user: 12345
                 id: 1
-                products: []
                 topk: 10
-                type: "rank"
         default:
           description: |-
             Unexpected error
@@ -360,7 +329,6 @@ paths:
                   - id: 6789
                     rating: 3.5
                 topk: 1
-                type: "rank"
         default:
           description: |-
             Unexpected error
