@@ -229,7 +229,6 @@ paths:
                 user: 12345
                 id: 1
                 products: []
-                type: "rating"
         default:
           description: |-
             Unexpected error
@@ -295,6 +294,7 @@ paths:
                 user: 12345
                 id: 1
                 topk: 10
+                products: []
         default:
           description: |-
             Unexpected error
