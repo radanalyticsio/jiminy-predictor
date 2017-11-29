@@ -10,6 +10,10 @@ import predictions
 import views
 
 
+def get_arg(env, default):
+    return os.getenv(env) if os.getenv(env, '') is not '' else default
+
+
 def main():
     """start the http service"""
 
@@ -33,7 +37,7 @@ def main():
     # waiting for processing loop to become active
     response_q.get()
 
-    storage = caches.MemoryCache()
+    storage = caches.factory(get_arg('CACHE_STORE', 'memory'))
 
     # create and start the cache updater thread
     thread = t.Thread(target=caches.updater, args=(response_q, storage))
@@ -43,16 +47,16 @@ def main():
     app.add_url_rule('/', view_func=views.ServerInfo.as_view('server'))
     app.add_url_rule('/predictions/ratings',
                      view_func=views.PredictionsRatings.as_view('rating_prediction',
-                                                         storage,
-                                                         request_q))
+                                                                storage,
+                                                                request_q))
     app.add_url_rule('/predictions/ratings/<string:p_id>',
                      view_func=views.PredictionDetail.as_view('rating_predictions',
                                                               storage))
 
     app.add_url_rule('/predictions/ranks',
                      view_func=views.PredictionsRanks.as_view('rank_prediction',
-                                                         storage,
-                                                         request_q))
+                                                              storage,
+                                                              request_q))
 
     app.add_url_rule('/predictions/ranks/<string:p_id>',
                      view_func=views.PredictionDetail.as_view('rank_predictions',

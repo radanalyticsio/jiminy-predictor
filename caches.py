@@ -6,8 +6,11 @@ results.
 """
 import abc
 import threading as t
+import pickle
 
 import errors
+
+from infinispan.remotecache import RemoteCache
 
 
 def updater(response_q, storage):
@@ -100,3 +103,48 @@ class MemoryCache(Cache):
         self.lock.release()
         if not exists:
             raise errors.PredictionNotFound
+
+
+class InfinispanCache(Cache):
+    def __init__(self, host='127.0.0.1', port=11222, cache_name=''):
+        self._remote_cache = RemoteCache(host=host, port=port, cache_name=cache_name)
+        self.lock = t.Lock()
+
+    def store(self, prediction):
+        exists = False
+        self.lock.acquire()
+        if not self._remote_cache.contains_key(prediction['id']):
+            self._remote_cache.put(prediction['id'], pickle.dumps(prediction))
+        else:
+            exists = True
+        self.lock.release()
+        if exists:
+            raise errors.PredictionExists
+
+    def get(self, p_id):
+        self.lock.acquire()
+        ret = self._remote_cache.get(p_id)
+        self.lock.release()
+        if ret is None:
+            raise errors.PredictionNotFound
+        return pickle.loads(ret)
+
+    def update(self, prediction):
+        exists = True
+        self.lock.acquire()
+        if self._remote_cache.contains_key(prediction['id']):
+            self._remote_cache.put(prediction['id'], pickle.dumps(prediction))
+        else:
+            exists = False
+        self.lock.release()
+        if not exists:
+            raise errors.PredictionNotFound
+
+
+def factory(engine):
+    if engine.lower() == 'infinispan':
+        print "using InfinispanCache"
+        return InfinispanCache()
+    else:
+        print "using MemoryCache"
+        return MemoryCache()
