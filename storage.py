@@ -71,7 +71,7 @@ class ModelReader:
 class MongoModelReader(ModelReader):
     def __init__(self, sc, uri):
         super(MongoModelReader, self).__init__(sc=sc, uri=uri)
-        client = MongoClient()
+        client = MongoClient(self._url)
         self._db = client.models
 
     def read(self, version):
