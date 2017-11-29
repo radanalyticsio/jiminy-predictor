@@ -61,7 +61,8 @@ class PredictionsRanks(fv.MethodView):
         r_dict = {
             'user': data['user'],
             'id': uuid.uuid4().hex,
-            'topk': data['topk']
+            'topk': data['topk'],
+            'products': []
         }
 
         try:
