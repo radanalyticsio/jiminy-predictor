@@ -46,7 +46,7 @@ def loop(request_q, response_q):
 
         if 'topk' in req:
             # make rank predictions
-            recommendations = model.als.recommendProducts(req['user'], req['topk'])
+            recommendations = model.als.recommendProducts(int(req['user']), int(req['topk']))
             resp.update(products=
                         [{'id': recommendation[1], 'rating': recommendation[2]} for recommendation in recommendations])
             response_q.put(resp)
