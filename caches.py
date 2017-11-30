@@ -8,6 +8,7 @@ import abc
 import threading as t
 
 import errors
+import logger
 
 
 def updater(response_q, storage):
@@ -70,6 +71,8 @@ class MemoryCache(Cache):
     def __init__(self):
         self.data = {}
         self.lock = t.Lock()
+        self._logger = logger.get_logger()
+        self._logger.debug("Memory cache initialized")
 
     def store(self, prediction):
         exists = False
