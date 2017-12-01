@@ -3,6 +3,8 @@ import urlparse
 
 import pymongo
 from pymongo import MongoClient
+from pyspark.mllib.common import _py2java
+
 from model import Model
 from pyspark.mllib.recommendation import MatrixFactorizationModel
 
@@ -60,11 +62,13 @@ class ModelReader:
         :param productFeatures: A list of product features
         :return: A `Model` instance
         """
+
         jvm = self._sc._gateway.jvm
-        als_model = jvm.io.radanalytics.als.ALSSerializer.instantiateModel(self._sc._jsc, rank, userFeatures,
+        als_model = jvm.io.radanalytics.als.ALSSerializer.instantiateModel(rank, userFeatures,
                                                                            productFeatures)
         wrapper = jvm.org.apache.spark.mllib.api.python.MatrixFactorizationModelWrapper(als_model)
         model = Model(sc=self._sc, als_model=MatrixFactorizationModel(wrapper), version=version, data_version=1)
+
         return model
 
 
@@ -79,9 +83,11 @@ class MongoModelReader(ModelReader):
 
         rank = data[0]['rank']
 
-        userFactors = self.extractFeatures(list(self._db.userFactors.find({'model_id': version})))
+        userFactors = _py2java(self._sc, self._sc.parallelize(
+            self.extractFeatures(list(self._db.userFactors.find({'model_id': version})))))
 
-        productFactors = self.extractFeatures(list(self._db.productFactors.find({'model_id': version})))
+        productFactors = _py2java(self._sc, self._sc.parallelize(
+            self.extractFeatures(list(self._db.productFactors.find({'model_id': version})))))
 
         return self.instantiate(rank=rank,
                                 version=version,
@@ -89,15 +95,18 @@ class MongoModelReader(ModelReader):
                                 productFeatures=productFactors)
 
     def readLatest(self):
+
         data = list(self._db.models.find().sort('created', pymongo.DESCENDING))
 
         version = data[0]['id']
 
         rank = data[0]['rank']
 
-        userFactors = self.extractFeatures(list(self._db.userFactors.find({'model_id': version})))
+        userFactors = _py2java(self._sc, self._sc.parallelize(
+            self.extractFeatures(list(self._db.userFactors.find({'model_id': version})))))
 
-        productFactors = self.extractFeatures(list(self._db.productFactors.find({'model_id': version})))
+        productFactors = _py2java(self._sc, self._sc.parallelize(
+            self.extractFeatures(list(self._db.productFactors.find({'model_id': version})))))
 
         return self.instantiate(rank=rank,
                                 version=version,
