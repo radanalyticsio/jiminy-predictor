@@ -4,9 +4,11 @@ Predictions contains the functions and classes related to the Apache Spark
 based prediction routines.
 """
 
-import storage
-import os
 import datetime
+import os
+import os.path
+import storage
+
 from pyspark import sql as pysql
 
 
@@ -32,6 +34,21 @@ def loop(request_q, response_q):
     # just leaving these here for future reference (elmiko)
 
     spark = pysql.SparkSession.builder.appName("JiminyRec").getOrCreate()
+
+    # load the local jar file we will need
+    localjar = os.path.join(os.environ['PWD'],
+                            'libs',
+                            'spark-als-serializer_2.11-0.2.jar')
+    loader = spark._jvm.Thread.currentThread().getContextClassLoader()
+    url = spark._jvm.java.net.URL('file:' + localjar)
+    loader.addURL(url)
+    # get the SparkContext singleton from the JVM (not the pyspark API)
+    context = spark._jvm.org.apache.spark.SparkContext.getOrCreate()
+    context.addJar(localjar)
+    print('------------------- loading jar -------------------------------')
+    print(url)
+
+    # get a context (from the pyspark API) to do some work
     sc = spark.sparkContext
 
     # load the latest model from the model store
