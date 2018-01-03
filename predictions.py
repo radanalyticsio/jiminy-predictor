@@ -9,6 +9,10 @@ import os
 from pyspark import sql as pysql
 
 
+def get_arg(env, default):
+    return os.getenv(env) if os.getenv(env, '') is not '' else default
+
+
 def loop(request_q, response_q):
     """processing loop for predictions
 
@@ -17,8 +21,8 @@ def loop(request_q, response_q):
     the response_q queue.
     """
 
-    # Get the model store backend, e.g. MODEL_STORE_URI=mongodb://localhost:27017
-    MODEL_STORE_URI = os.environ['MODEL_STORE_URI']
+    # Get the model store backend. If none provided the default is `mongodb://localhost:27017`
+    MODEL_STORE_URI = get_arg('MODEL_STORE_URI', 'mongodb://localhost:27017')
 
     # just leaving these here for future reference (elmiko)
 
@@ -59,4 +63,3 @@ def loop(request_q, response_q):
             resp.update(products=
                         [{'id': item[0], 'rating': item[1]} for item in predictions])
             response_q.put(resp)
-
