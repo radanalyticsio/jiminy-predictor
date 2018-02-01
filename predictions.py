@@ -70,6 +70,8 @@ def loop(request_q, response_q):
             latest_id = model_reader.latestId()
             if model.version != latest_id:
                 model = model_reader.read(version=latest_id)
+                # invalidade the cache, since we are using a new model
+                response_q.put('invalidate')
             last_model_check = current_time
 
         req = request_q.get()
