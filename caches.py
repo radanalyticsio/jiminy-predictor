@@ -5,9 +5,28 @@ the prediction cache. This cache holds the previously requested prediction
 results.
 """
 import abc
+import httplib
+import json
 import threading as t
 
+import os
+
 import errors
+
+
+def get_arg(env, default):
+    return os.getenv(env) if os.getenv(env, '') is not '' else default
+
+
+def factory():
+    CACHE_TYPE = get_arg('CACHE_TYPE', 'memory')
+    CACHE_URL = get_arg('CACHE_URL', '')
+    CACHE_NAME = get_arg('CACHE_NAME', '')
+
+    if CACHE_TYPE == 'jdg' or CACHE_TYPE == 'infinispan':
+        return InfinispanCache(url=CACHE_URL, cache_name=CACHE_NAME)
+    else:
+        return MemoryCache()
 
 
 def updater(response_q, storage):
@@ -25,6 +44,8 @@ def updater(response_q, storage):
         resp = response_q.get()
         if resp == 'stop':
             break
+        elif resp == 'invalidate':
+            storage.invalidate()
         storage.update(resp)
 
 
@@ -56,6 +77,13 @@ class Cache():
         """update an existing record
 
         raises PredictionNotFound if the id is not in the cache
+        """
+        pass
+
+    @abc.abstractmethod
+    def invalidate(self):
+        """invalidates the entire cache (e.g. when a new model is loaded)
+
         """
         pass
 
@@ -100,3 +128,41 @@ class MemoryCache(Cache):
         self.lock.release()
         if not exists:
             raise errors.PredictionNotFound
+
+    def invalidate(self):
+        self.lock.acquire()
+        self.data = {}
+        self.lock.release()
+
+
+class InfinispanCache(Cache):
+
+    def __init__(self, url, cache_name):
+        self._url = url
+        self._cache_name = cache_name
+        self.invalidate()  # invalidate cache, just in case we have stale persisted JDG entries
+
+    def store(self, prediction):
+        conn = httplib.HTTPConnection(self._url)
+        conn.request(method="POST", url=self._format(prediction['id']), body=json.dumps(prediction),
+                     headers={"Content-Type": "application/json"})
+
+    def get(self, p_id):
+        conn = httplib.HTTPConnection(self._url)
+        url = "/rest/{}/{}".format(self._cache_name, p_id)
+        conn.request(method="GET", url=url)
+        response = conn.getresponse()
+        return json.loads(response.read())
+
+    def update(self, prediction):
+        conn = httplib.HTTPConnection(self._url)
+        conn.request(method="PUT", url=self._format(prediction['id']), body=json.dumps(prediction),
+                     headers={"Content-Type": "application/json"})
+
+    def _format(self, key):
+        return "/rest/{}/{}".format(self._cache_name, key)
+
+    def invalidate(self):
+        conn = httplib.HTTPConnection(self._url)
+        url = "/rest/{}".format(self._cache_name)
+        conn.request(method="DELETE", url=url)
