@@ -138,6 +138,9 @@ class MemoryCache(Cache):
 
 
 class InfinispanCache(Cache):
+    """
+    A JDG/Infinispan backend cache store (using the JDG REST API)
+    """
 
     def __init__(self, host, name, port):
         self._host = host
@@ -149,33 +152,69 @@ class InfinispanCache(Cache):
         return httplib.HTTPConnection(self._host, self._port)
 
     def store(self, prediction):
-        conn = self._connect()
-        conn.request(method="POST", url=self._format(prediction['id']), body=json.dumps(prediction),
-                     headers={"Content-Type": "application/json"})
-        conn.close()
+        try:
+            conn = self._connect()
+            conn.request(method="POST", url=self._format(prediction['id']), body=json.dumps(prediction),
+                         headers={"Content-Type": "application/json"})
+            response = conn.getresponse()
+            conn.close()
+
+            # if a prediction with this id already exists, raise an error
+            if response.status == 409:
+                raise errors.PredictionExists
+            # raise a cache error if any status other than OK is returned by JDG
+            elif response.status != 200:
+                raise errors.CacheError
+        except httplib.HTTPException:
+            print "Error connecting to JDG/Infinispan cache store"
 
     def get(self, p_id):
-        conn = self._connect()
-        url = "/rest/{}/{}".format(self._name, p_id)
-        conn.request(method="GET", url=url)
-        response = conn.getresponse()
-        result = json.loads(response.read())
-        conn.close()
-        return result
+        try:
+            conn = self._connect()
+            conn.request(method="GET", url=self._format(p_id))
+            response = conn.getresponse()
+            # raise an error if trying to get a prediction that isn't cached
+            if response.status == 404:
+                raise errors.PredictionNotFound
+            # raise a cache error if any status other than OK is returned by JDG
+            elif response.status != 200:
+                raise errors.CacheError
+            result = json.loads(response.read())
+            conn.close()
+            return result
+        except httplib.HTTPException:
+            print "Error connecting to JDG/Infinispan cache store"
 
     def update(self, prediction):
-        conn = self._connect()
-        conn.request(method="PUT", url=self._format(prediction['id']), body=json.dumps(prediction),
-                     headers={"Content-Type": "application/json"})
-        conn.close()
+        try:
+            conn = self._connect()
+            conn.request(method="PUT", url=self._format(prediction['id']), body=json.dumps(prediction),
+                         headers={"Content-Type": "application/json"})
+            conn.close()
+            response = conn.getresponse()
+            # raise an error if trying to update an entry that doesn't exist
+            if response.status == 404:
+                raise errors.PredictionNotFound
+            # raise a cache error if any status other than OK is returned by JDG
+            elif response.status != 200:
+                raise errors.CacheError
+        except httplib.HTTPException:
+            print "Error connecting to JDG/Infinispan cache store"
 
     def _format(self, key):
         return "/rest/{}/{}".format(self._name, key)
 
     def invalidate(self):
-        conn = self._connect()
-        url = "/rest/{}".format(self._name)
-        print self._host
-        print url
-        conn.request(method="DELETE", url=url)
-        conn.close()
+        try:
+            conn = self._connect()
+            url = "/rest/{}".format(self._name)
+            print self._host
+            print url
+            conn.request(method="DELETE", url=url)
+            response = conn.getresponse()
+            conn.close()
+            # raise a cache error if any status other than OK is returned by JDG
+            if response.status != 200:
+                raise errors.CacheError
+        except httplib.HTTPException:
+            print "Error connecting to JDG/Infinispan cache store"
