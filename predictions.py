@@ -4,9 +4,16 @@ Predictions contains the functions and classes related to the Apache Spark
 based prediction routines.
 """
 
-import storage
+import datetime
 import os
+import os.path
+import storage
+
 from pyspark import sql as pysql
+
+
+def get_arg(env, default):
+    return os.getenv(env) if os.getenv(env, '') is not '' else default
 
 
 def loop(request_q, response_q):
@@ -17,12 +24,31 @@ def loop(request_q, response_q):
     the response_q queue.
     """
 
-    # Get the model store backend, e.g. MODEL_STORE_URI=mongodb://localhost:27017
-    MODEL_STORE_URI = os.environ['MODEL_STORE_URI']
+    # Get the model store backend. If none provided the default is `mongodb://localhost:27017`
+    MODEL_STORE_URI = get_arg('MODEL_STORE_URI', 'mongodb://localhost:27017')
+
+    # Get the minimum interval (in miliseconds) between model store checks for updated models
+    # Default is one minute (at the limit, for a check at every request, set to `0`).
+    MODEL_STORE_CHECK_RATE = get_arg('MODEL_STORE_CHECK_RATE', 60000)
 
     # just leaving these here for future reference (elmiko)
 
     spark = pysql.SparkSession.builder.appName("JiminyRec").getOrCreate()
+
+    # load the local jar file we will need
+    localjar = os.path.join(os.environ['PWD'],
+                            'libs',
+                            'spark-als-serializer_2.11-0.2.jar')
+    loader = spark._jvm.Thread.currentThread().getContextClassLoader()
+    url = spark._jvm.java.net.URL('file:' + localjar)
+    loader.addURL(url)
+    # get the SparkContext singleton from the JVM (not the pyspark API)
+    context = spark._jvm.org.apache.spark.SparkContext.getOrCreate()
+    context.addJar(localjar)
+    print('------------------- loading jar -------------------------------')
+    print(url)
+
+    # get a context (from the pyspark API) to do some work
     sc = spark.sparkContext
 
     # load the latest model from the model store
@@ -30,14 +56,21 @@ def loop(request_q, response_q):
 
     model = model_reader.readLatest()
 
+    # Last time the model store was checked
+    last_model_check = datetime.datetime.now()
+
     response_q.put('ready')  # let the main process know we are ready to start
 
     while True:
 
-        # check for new models in the model store
-        latest_id = model_reader.latestId()
-        if model.version != latest_id:
-            model = model_reader.read(version=latest_id)
+        current_time = datetime.datetime.now()
+        model_check_delta = current_time - last_model_check
+        if model_check_delta.total_seconds() * 1000 >= MODEL_STORE_CHECK_RATE:
+            # check for new models in the model store
+            latest_id = model_reader.latestId()
+            if model.version != latest_id:
+                model = model_reader.read(version=latest_id)
+            last_model_check = current_time
 
         req = request_q.get()
         if req == 'stop':
@@ -59,4 +92,3 @@ def loop(request_q, response_q):
             resp.update(products=
                         [{'id': item[0], 'rating': item[1]} for item in predictions])
             response_q.put(resp)
-

@@ -17,7 +17,7 @@ def main():
     logger = get_logger()
 
     # add the ALS type conversion Scala helper jar
-    os.environ['PYSPARK_SUBMIT_ARGS'] = '--jars ./libs/spark-als-serializer_2.11-0.1.jar pyspark-shell'
+    os.environ['PYSPARK_SUBMIT_ARGS'] = '--jars ./libs/spark-als-serializer_2.11-0.2.jar pyspark-shell'
 
     # create the flask app object
     app = flask.Flask(__name__)

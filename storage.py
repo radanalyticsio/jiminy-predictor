@@ -4,11 +4,12 @@ import time
 
 import pymongo
 from pymongo import MongoClient
+from pyspark.mllib.common import _py2java
+
+from model import Model
 from pyspark.mllib.recommendation import MatrixFactorizationModel
 
 import logger
-from model import Model
-
 
 class ModelFactory:
     @staticmethod
@@ -68,7 +69,7 @@ class ModelReader:
         start_time = time.time()
 
         jvm = self._sc._gateway.jvm
-        als_model = jvm.io.radanalytics.als.ALSSerializer.instantiateModel(self._sc._jsc, rank, userFeatures,
+        als_model = jvm.io.radanalytics.als.ALSSerializer.instantiateModel(rank, userFeatures,
                                                                            productFeatures)
         wrapper = jvm.org.apache.spark.mllib.api.python.MatrixFactorizationModelWrapper(als_model)
         model = Model(sc=self._sc, als_model=MatrixFactorizationModel(wrapper), version=version, data_version=1)
@@ -94,9 +95,11 @@ class MongoModelReader(ModelReader):
 
         rank = data[0]['rank']
 
-        userFactors = self.extractFeatures(list(self._db.userFactors.find({'model_id': version})))
+        userFactors = _py2java(self._sc, self._sc.parallelize(
+            self.extractFeatures(list(self._db.userFactors.find({'model_id': version})))))
 
-        productFactors = self.extractFeatures(list(self._db.productFactors.find({'model_id': version})))
+        productFactors = _py2java(self._sc, self._sc.parallelize(
+            self.extractFeatures(list(self._db.productFactors.find({'model_id': version})))))
 
         elapsed_time = time.time() - start_time
 
@@ -116,9 +119,11 @@ class MongoModelReader(ModelReader):
 
         rank = data[0]['rank']
 
-        userFactors = self.extractFeatures(list(self._db.userFactors.find({'model_id': version})))
+        userFactors = _py2java(self._sc, self._sc.parallelize(
+            self.extractFeatures(list(self._db.userFactors.find({'model_id': version})))))
 
-        productFactors = self.extractFeatures(list(self._db.productFactors.find({'model_id': version})))
+        productFactors = _py2java(self._sc, self._sc.parallelize(
+            self.extractFeatures(list(self._db.productFactors.find({'model_id': version})))))
 
         elapsed_time = time.time() - start_time
 
