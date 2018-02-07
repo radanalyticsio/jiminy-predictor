@@ -33,6 +33,7 @@ def main():
     # waiting for processing loop to become active
     response_q.get()
 
+    # initialize a cache store (uses environment variables for connection information)
     storage = caches.factory()
 
     # create and start the cache updater thread

@@ -19,3 +19,7 @@ class PredictionExists(Exception):
 
 class PredictionNotFound(Exception):
     pass
+
+
+class CacheError(Exception):
+    pass
