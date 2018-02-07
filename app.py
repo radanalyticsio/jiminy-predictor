@@ -8,10 +8,13 @@ import os
 import caches
 import predictions
 import views
+from logger import get_logger
 
 
 def main():
     """start the http service"""
+
+    logger = get_logger()
 
     # add the ALS type conversion Scala helper jar
     os.environ['PYSPARK_SUBMIT_ARGS'] = '--jars ./libs/spark-als-serializer_2.11-0.2.jar pyspark-shell'
@@ -33,6 +36,7 @@ def main():
     # waiting for processing loop to become active
     response_q.get()
 
+    logger.debug("Initializing cache")
     storage = caches.MemoryCache()
 
     # create and start the cache updater thread

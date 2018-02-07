@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import urlparse
+import time
 
 import pymongo
 from pymongo import MongoClient
@@ -8,6 +9,7 @@ from pyspark.mllib.common import _py2java
 from model import Model
 from pyspark.mllib.recommendation import MatrixFactorizationModel
 
+import logger
 
 class ModelFactory:
     @staticmethod
@@ -32,6 +34,7 @@ class ModelReader:
         """
         self._sc = sc
         self._url = uri
+        self._logger = logger.get_logger()
 
     @abstractmethod
     def read(self, version):
@@ -63,11 +66,17 @@ class ModelReader:
         :return: A `Model` instance
         """
 
+        start_time = time.time()
+
         jvm = self._sc._gateway.jvm
         als_model = jvm.io.radanalytics.als.ALSSerializer.instantiateModel(rank, userFeatures,
                                                                            productFeatures)
         wrapper = jvm.org.apache.spark.mllib.api.python.MatrixFactorizationModelWrapper(als_model)
         model = Model(sc=self._sc, als_model=MatrixFactorizationModel(wrapper), version=version, data_version=1)
+
+        elapsed_time = time.time() - start_time
+
+        self._logger.info("Model version {0} took {1} seconds to instantiate".format(version, elapsed_time))
 
         return model
 
@@ -77,8 +86,11 @@ class MongoModelReader(ModelReader):
         super(MongoModelReader, self).__init__(sc=sc, uri=uri)
         client = MongoClient(self._url)
         self._db = client.models
+        self._logger.info("Using MongoDB as the model store")
 
     def read(self, version):
+        start_time = time.time()
+
         data = list(self._db.models.find({'id': version}))
 
         rank = data[0]['rank']
@@ -89,12 +101,17 @@ class MongoModelReader(ModelReader):
         productFactors = _py2java(self._sc, self._sc.parallelize(
             self.extractFeatures(list(self._db.productFactors.find({'model_id': version})))))
 
+        elapsed_time = time.time() - start_time
+
+        self._logger.info("Model version {0} read in {1} seconds".format(version, elapsed_time))
+
         return self.instantiate(rank=rank,
                                 version=version,
                                 userFeatures=userFactors,
                                 productFeatures=productFactors)
 
     def readLatest(self):
+        start_time = time.time()
 
         data = list(self._db.models.find().sort('created', pymongo.DESCENDING))
 
@@ -107,6 +124,10 @@ class MongoModelReader(ModelReader):
 
         productFactors = _py2java(self._sc, self._sc.parallelize(
             self.extractFeatures(list(self._db.productFactors.find({'model_id': version})))))
+
+        elapsed_time = time.time() - start_time
+
+        self._logger.info("Model version {0} read in {1} seconds".format(version, elapsed_time))
 
         return self.instantiate(rank=rank,
                                 version=version,
