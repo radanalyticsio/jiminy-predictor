@@ -19,7 +19,6 @@ The predictor can then instantiated by running
 ```
 oc new-app --template oshinko-pyspark-build-dc \
   -p GIT_URI=https://github.com/radanalyticsio/jiminy-predictor \
-  -p SPARK_OPTIONS='--jars ./libs/spark-als-serializer_2.11-0.2.jar' \
   -e MODEL_STORE_URI=mongodb://mongo:mongo@mongodb/models \
   -p APP_FILE=app.py \
   -p APPLICATION_NAME=predictor
@@ -46,7 +45,8 @@ oc new-app --template oshinko-pyspark-build-dc \
 
 The predictor service provides two main endpoints, one for retrieving ad-hoc
 rating predictions (given a list of users/products) and a top-k rated products 
-(given a user).
+(given a user). The [OpenAPI](https://github.com/OAI/OpenAPI-Specification) specification
+can be found in [docs/openapi.yml]([docs/openapi.yml).
 
 ### Ratings
 
