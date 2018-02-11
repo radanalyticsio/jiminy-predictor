@@ -7,12 +7,20 @@ based prediction routines.
 import datetime
 import os
 import os.path
-import storage
-
 from pyspark import sql as pysql
+import storage
 
 
 def get_arg(env, default):
+    """
+    Get environment variable value or default, if not set
+    :param env: The environment variable to read
+    :type env: string
+    :param default: Default value to return if not set
+    :type default: string
+    :return: Environment variable value of default if not set
+    :rtype string
+    """
     return os.getenv(env) if os.getenv(env, '') is not '' else default
 
 
@@ -63,8 +71,10 @@ def loop(request_q, response_q):
 
     while True:
 
+        # calculate how much time elapsed since the last model check
         current_time = datetime.datetime.now()
         model_check_delta = current_time - last_model_check
+        # if the model check was performed longer than the check rate threshold
         if model_check_delta.total_seconds() * 1000 >= MODEL_STORE_CHECK_RATE:
             # check for new models in the model store
             latest_id = model_reader.latestId()
@@ -75,13 +85,16 @@ def loop(request_q, response_q):
             last_model_check = current_time
 
         req = request_q.get()
+        # stop the processing loop
         if req == 'stop':
             break
         resp = req
 
+        # preform a top-k rating for the specified user prediction
         if 'topk' in req:
             # make rank predictions
             recommendations = model.als.recommendProducts(int(req['user']), int(req['topk']))
+            # update the cache store
             resp.update(products=
                         [{'id': recommendation[1], 'rating': recommendation[2]} for recommendation in recommendations])
             response_q.put(resp)
@@ -90,7 +103,7 @@ def loop(request_q, response_q):
             # make rating predictions
             items = sc.parallelize([(req['user'], p['id']) for p in req['products']])
             predictions = model.als.predictAll(items).map(lambda x: (x[1], x[2])).collect()
-
+            # update the cache store
             resp.update(products=
                         [{'id': item[0], 'rating': item[1]} for item in predictions])
             response_q.put(resp)
