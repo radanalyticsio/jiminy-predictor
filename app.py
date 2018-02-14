@@ -1,12 +1,10 @@
 """main application file for jiminy-recommender"""
-import multiprocessing as mp
-import threading as t
-
-import flask
-import os
-
 import caches
+import flask
+import multiprocessing as mp
+import os
 import predictions
+import threading as t
 import views
 
 
@@ -14,7 +12,8 @@ def main():
     """start the http service"""
 
     # add the ALS type conversion Scala helper jar
-    os.environ['PYSPARK_SUBMIT_ARGS'] = '--jars ./libs/spark-als-serializer_2.11-0.2.jar pyspark-shell'
+    os.environ[
+        'PYSPARK_SUBMIT_ARGS'] = '--jars ./libs/spark-als-serializer_2.11-0.2.jar pyspark-shell'  # noqa: E501
 
     # create the flask app object
     app = flask.Flask(__name__)
@@ -33,7 +32,8 @@ def main():
     # waiting for processing loop to become active
     response_q.get()
 
-    # initialize a cache store (uses environment variables for connection information)
+    # initialize a cache store
+    # (uses environment variables for connection information)
     storage = caches.factory()
 
     # create and start the cache updater thread
@@ -43,21 +43,25 @@ def main():
     # configure routes and start the service
     app.add_url_rule('/', view_func=views.ServerInfo.as_view('server'))
     app.add_url_rule('/predictions/ratings',
-                     view_func=views.PredictionsRatings.as_view('rating_prediction',
-                                                                storage,
-                                                                request_q))
+                     view_func=views.PredictionsRatings.as_view(
+                         'rating_prediction',
+                         storage,
+                         request_q))
     app.add_url_rule('/predictions/ratings/<string:p_id>',
-                     view_func=views.PredictionDetail.as_view('rating_predictions',
-                                                              storage))
+                     view_func=views.PredictionDetail.as_view(
+                         'rating_predictions',
+                         storage))
 
     app.add_url_rule('/predictions/ranks',
-                     view_func=views.PredictionsRanks.as_view('rank_prediction',
-                                                              storage,
-                                                              request_q))
+                     view_func=views.PredictionsRanks.as_view(
+                         'rank_prediction',
+                         storage,
+                         request_q))
 
     app.add_url_rule('/predictions/ranks/<string:p_id>',
-                     view_func=views.PredictionDetail.as_view('rank_predictions',
-                                                              storage))
+                     view_func=views.PredictionDetail.as_view(
+                         'rank_predictions',
+                         storage))
 
     app.run(host='0.0.0.0', port=8080)
     request_q.put('stop')
