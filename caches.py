@@ -26,9 +26,11 @@ def get_arg(env, default):
 
 
 def factory():
-    """Method to return a concrete instance of a `Cache` store as specified by the environment variables.
+    """Method to return a concrete instance of a `Cache` store as specified by
+    the environment variables.
 
-    Possible cache backends include memory and jdg/infinispan. Any other value will fallback to a memory cache.
+    Possible cache backends include memory and jdg/infinispan. Any other value
+    will fallback to a memory cache.
 
     :return: A concrete instance of a `Cache` store.
     :rtype: Cache
@@ -39,7 +41,8 @@ def factory():
     CACHE_NAME = get_arg('CACHE_NAME', '')
 
     if CACHE_TYPE == 'jdg' or CACHE_TYPE == 'infinispan':
-        return InfinispanCache(host=CACHE_HOST, name=CACHE_NAME, port=CACHE_PORT)
+        return InfinispanCache(host=CACHE_HOST, name=CACHE_NAME,
+                               port=CACHE_PORT)
     else:
         return MemoryCache()
 
@@ -165,6 +168,7 @@ class MemoryCache(Cache):
 class InfinispanCache(Cache):
     """A JDG/Infinispan backend cache store (using the JDG REST API)
     """
+
     def __init__(self, host, name, port):
         """
         Initialize JDG cache manager by providing connection details
@@ -179,7 +183,8 @@ class InfinispanCache(Cache):
         self._host = host
         self._name = name
         self._port = port
-        self.invalidate()  # invalidate cache, just in case we have stale persisted JDG entries
+        # invalidate cache, just in case we have stale persisted JDG entries
+        self.invalidate()
 
     def _connect(self):
         """
@@ -192,8 +197,9 @@ class InfinispanCache(Cache):
     def store(self, prediction):
         try:
             conn = self._connect()
-            # issue a POST request to the JDG server to create the cache entry (as a JSON string)
-            conn.request(method="POST", url=self._format(prediction['id']), body=json.dumps(prediction),
+            # issue a POST request to the JDG server to create the cache entry
+            conn.request(method="POST", url=self._format(prediction['id']),
+                         body=json.dumps(prediction),
                          headers={"Content-Type": "application/json"})
             response = conn.getresponse()
             conn.close()
@@ -201,22 +207,22 @@ class InfinispanCache(Cache):
             # if a prediction with this id already exists, raise an error
             if response.status == 409:
                 raise errors.PredictionExists
-            # raise a cache error if any status other than OK is returned by JDG
+            # raise a cache error if a status other than OK is returned by JDG
             elif response.status != 200:
                 raise errors.CacheError
         except httplib.HTTPException:
-            print "Error connecting to JDG/Infinispan cache store"
+            print("Error connecting to JDG/Infinispan cache store")
 
     def get(self, p_id):
         try:
             conn = self._connect()
-            # issue a GET request to the JDG server to get the cache entry (as a JSON string)
+            # issue a GET request to the JDG server to get the cache entry
             conn.request(method="GET", url=self._format(p_id))
             response = conn.getresponse()
             # raise an error if trying to get a prediction that isn't cached
             if response.status == 404:
                 raise errors.PredictionNotFound
-            # raise a cache error if any status other than OK is returned by JDG
+            # raise a cache error if a status other than OK is returned by JDG
             elif response.status != 200:
                 raise errors.CacheError
             # parse the JSON string response
@@ -224,24 +230,25 @@ class InfinispanCache(Cache):
             conn.close()
             return result
         except httplib.HTTPException:
-            print "Error connecting to JDG/Infinispan cache store"
+            print("Error connecting to JDG/Infinispan cache store")
 
     def update(self, prediction):
         try:
             conn = self._connect()
             # issue a PUT request to the JDG server to update the cache entry
-            conn.request(method="PUT", url=self._format(prediction['id']), body=json.dumps(prediction),
+            conn.request(method="PUT", url=self._format(prediction['id']),
+                         body=json.dumps(prediction),
                          headers={"Content-Type": "application/json"})
             conn.close()
             response = conn.getresponse()
             # raise an error if trying to update an entry that doesn't exist
             if response.status == 404:
                 raise errors.PredictionNotFound
-            # raise a cache error if any status other than OK is returned by JDG
+            # raise a cache error if a status other than OK is returned by JDG
             elif response.status != 200:
                 raise errors.CacheError
         except httplib.HTTPException:
-            print "Error connecting to JDG/Infinispan cache store"
+            print("Error connecting to JDG/Infinispan cache store")
 
     def _format(self, p_id):
         """
@@ -256,13 +263,12 @@ class InfinispanCache(Cache):
         try:
             conn = self._connect()
             url = "/rest/{}".format(self._name)
-            print self._host
-            # issue a DELETE request which will invalidate the current JDG cache
+            # issue a DELETE request to invalidate the current JDG cache
             conn.request(method="DELETE", url=url)
             response = conn.getresponse()
             conn.close()
-            # raise a cache error if any status other than OK is returned by JDG
+            # raise a cache error if a status other than OK is returned by JDG
             if response.status != 200:
                 raise errors.CacheError
         except httplib.HTTPException:
-            print "Error connecting to JDG/Infinispan cache store"
+            print("Error connecting to JDG/Infinispan cache store")
