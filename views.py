@@ -1,14 +1,11 @@
-import uuid
-
+import errors
 from flask import json
 from flask import request as fr
 import flask.views as fv
-
-import errors
+import uuid
 
 
 class ServerInfo(fv.MethodView):
-
     info = {
         'application': {
             'name': 'jiminy-recommender',
