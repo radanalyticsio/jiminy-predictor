@@ -32,11 +32,13 @@ def loop(request_q, response_q):
     the response_q queue.
     """
 
-    # Get the model store backend. If none provided the default is `mongodb://localhost:27017`
+    # get the model store backend
+    # if none provided the default is `mongodb://localhost:27017`
     MODEL_STORE_URI = get_arg('MODEL_STORE_URI', 'mongodb://localhost:27017')
 
-    # Get the minimum interval (in miliseconds) between model store checks for updated models
-    # Default is one minute (at the limit, for a check at every request, set to `0`).
+    # get the minimum interval (in miliseconds) between model store checks for
+    # updated models. default is one minute (at the limit, for a check at every
+    # request, set to `0`).
     MODEL_STORE_CHECK_RATE = get_arg('MODEL_STORE_CHECK_RATE', 60000)
 
     # just leaving these here for future reference (elmiko)
@@ -93,17 +95,24 @@ def loop(request_q, response_q):
         # preform a top-k rating for the specified user prediction
         if 'topk' in req:
             # make rank predictions
-            recommendations = model.als.recommendProducts(int(req['user']), int(req['topk']))
+            recommendations = model.als.recommendProducts(int(req['user']),
+                                                          int(req['topk']))
             # update the cache store
-            resp.update(products=
-                        [{'id': recommendation[1], 'rating': recommendation[2]} for recommendation in recommendations])
+            resp.update(products=[
+                {'id': recommendation[1], 'rating': recommendation[2]}
+                for recommendation in recommendations
+            ])
             response_q.put(resp)
 
         else:
             # make rating predictions
-            items = sc.parallelize([(req['user'], p['id']) for p in req['products']])
-            predictions = model.als.predictAll(items).map(lambda x: (x[1], x[2])).collect()
+            items = sc.parallelize(
+                [(req['user'], p['id']) for p in req['products']])
+            predictions = model.als.predictAll(items).map(
+                lambda x: (x[1], x[2])).collect()
             # update the cache store
-            resp.update(products=
-                        [{'id': item[0], 'rating': item[1]} for item in predictions])
+            resp.update(products=[
+                {'id': item[0], 'rating': item[1]}
+                for item in predictions
+            ])
             response_q.put(resp)
