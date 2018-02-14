@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/radanalyticsio/jiminy-predictor.svg?branch=master)](https://travis-ci.org/radanalyticsio/jiminy-predictor)
+
 # Jiminy Predictor
 
 This is the prediction service for the Jiminy project.
