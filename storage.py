@@ -10,11 +10,13 @@ import urlparse
 class ModelFactory:
     """Model store factory for concrete backends
 
-    Returns a concrete instance of a model store backend using a connection URL.
+    Returns a concrete instance of a model store backend using a connection URL
     """
+
     @staticmethod
     def fromURL(sc, url):
-        """Parse a model store connection URL and returns the appropriate model store backend
+        """Parse a model store connection URL and returns the appropriate
+        model store backend
 
         :param sc: A Spark context
         :type sc: SparkContext
@@ -74,10 +76,13 @@ class ModelReader:
         """
 
         jvm = self._sc._gateway.jvm
-        als_model = jvm.io.radanalytics.als.ALSSerializer.instantiateModel(rank, userFeatures,
-                                                                           productFeatures)
-        wrapper = jvm.org.apache.spark.mllib.api.python.MatrixFactorizationModelWrapper(als_model)
-        model = Model(sc=self._sc, als_model=MatrixFactorizationModel(wrapper), version=version, data_version=1)
+        als_model = jvm.io.radanalytics.als.ALSSerializer.instantiateModel(
+            rank, userFeatures,
+            productFeatures)
+        wrapper = jvm.org.apache.spark.mllib.api.python.MatrixFactorizationModelWrapper(  # noqa: E501
+            als_model)
+        model = Model(sc=self._sc, als_model=MatrixFactorizationModel(wrapper),
+                      version=version, data_version=1)
 
         return model
 
@@ -85,6 +90,7 @@ class ModelReader:
 class MongoModelReader(ModelReader):
     """This class allows reading serialized ALS models from a MongoDB backend
     """
+
     def __init__(self, sc, uri):
         super(MongoModelReader, self).__init__(sc=sc, uri=uri)
         client = MongoClient(self._url)
@@ -99,12 +105,15 @@ class MongoModelReader(ModelReader):
 
         # transform the read latent factor from list to a Spark's RDD
         userFactors = _py2java(self._sc, self._sc.parallelize(
-            self.extractFeatures(list(self._db.userFactors.find({'model_id': version})))))
+            self.extractFeatures(
+                list(self._db.userFactors.find({'model_id': version})))))
 
         productFactors = _py2java(self._sc, self._sc.parallelize(
-            self.extractFeatures(list(self._db.productFactors.find({'model_id': version})))))
+            self.extractFeatures(
+                list(self._db.productFactors.find({'model_id': version})))))
 
-        # instantiate a Spark's `MatrixFactorizationModel` from the latent factors RDDs
+        # instantiate a Spark's `MatrixFactorizationModel` from the
+        # latent factors RDDs
         return self.instantiate(rank=rank,
                                 version=version,
                                 userFeatures=userFactors,
@@ -118,10 +127,12 @@ class MongoModelReader(ModelReader):
         rank = data[0]['rank']
 
         userFactors = _py2java(self._sc, self._sc.parallelize(
-            self.extractFeatures(list(self._db.userFactors.find({'model_id': version})))))
+            self.extractFeatures(
+                list(self._db.userFactors.find({'model_id': version})))))
 
         productFactors = _py2java(self._sc, self._sc.parallelize(
-            self.extractFeatures(list(self._db.productFactors.find({'model_id': version})))))
+            self.extractFeatures(
+                list(self._db.productFactors.find({'model_id': version})))))
 
         return self.instantiate(rank=rank,
                                 version=version,
@@ -151,12 +162,14 @@ class MongoModelReader(ModelReader):
 class ParquetModelReader(ModelReader):
     """This class allows reading serialized ALS models from a Parquet file
     """
+
     def __init__(self, sc, uri):
         super(ParquetModelReader, self).__init__(sc=sc, uri=uri)
 
     def read(self, version):
         als_model = MatrixFactorizationModel.load(self._sc, self._url)
-        model = Model(sc=self._sc, als_model=als_model, version=version, data_version=1)
+        model = Model(sc=self._sc, als_model=als_model, version=version,
+                      data_version=1)
         return model
 
     def readLatest(self):
