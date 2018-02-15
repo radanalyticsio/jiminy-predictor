@@ -1,6 +1,7 @@
 """main application file for jiminy-recommender"""
 import caches
 import flask
+from logger import get_logger
 import multiprocessing as mp
 import os
 import predictions
@@ -10,6 +11,9 @@ import views
 
 def main():
     """start the http service"""
+
+    # acquire logger
+    logger = get_logger()
 
     # add the ALS type conversion Scala helper jar
     os.environ[
@@ -34,6 +38,7 @@ def main():
 
     # initialize a cache store
     # (uses environment variables for connection information)
+    logger.debug("Initializing cache")
     storage = caches.factory()
 
     # create and start the cache updater thread
