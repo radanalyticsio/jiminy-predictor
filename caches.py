@@ -8,6 +8,7 @@ import abc
 import errors
 import httplib
 import json
+import logger
 import os
 import threading as t
 
@@ -128,6 +129,8 @@ class MemoryCache(Cache):
     def __init__(self):
         self.data = {}
         self.lock = t.Lock()
+        self._logger = logger.get_logger()
+        self._logger.debug("Initializing memory cache store.")
 
     def store(self, prediction):
         exists = False
@@ -138,6 +141,9 @@ class MemoryCache(Cache):
             exists = True
         self.lock.release()
         if exists:
+            self._logger.error(
+                "Prediction id={} already exists in the cache.".format(
+                    prediction['id']))
             raise errors.PredictionExists
 
     def get(self, p_id):
@@ -145,6 +151,7 @@ class MemoryCache(Cache):
         ret = self.data.get(p_id)
         self.lock.release()
         if ret is None:
+            self._logger.error("Prediction id={} not found.".format(p_id))
             raise errors.PredictionNotFound
         return ret
 
@@ -157,6 +164,8 @@ class MemoryCache(Cache):
             exists = False
         self.lock.release()
         if not exists:
+            self._logger.error(
+                "Prediction id={} not found.".format(prediction['id']))
             raise errors.PredictionNotFound
 
     def invalidate(self):
@@ -183,6 +192,11 @@ class InfinispanCache(Cache):
         self._host = host
         self._name = name
         self._port = port
+        self._logger = logger.get_logger()
+        self._logger.debug(
+            "Initializing a JDG cache store (at {}:{}/{}).".format(host,
+                                                                   port,
+                                                                   name))
         # invalidate cache, just in case we have stale persisted JDG entries
         self.invalidate()
 
@@ -206,12 +220,18 @@ class InfinispanCache(Cache):
 
             # if a prediction with this id already exists, raise an error
             if response.status == 409:
+                self._logger.error(
+                    "Prediction id={} already exists in the cache.".format(
+                        prediction['id']))
                 raise errors.PredictionExists
             # raise a cache error if a status other than OK is returned by JDG
             elif response.status != 200:
+                self._logger.error(
+                    "JDG could not store prediction id={}.".format(
+                        prediction['id']))
                 raise errors.CacheError
         except httplib.HTTPException:
-            print("Error connecting to JDG/Infinispan cache store")
+            self._logger.error("Error connecting to JDG cache store.")
 
     def get(self, p_id):
         try:
@@ -221,16 +241,19 @@ class InfinispanCache(Cache):
             response = conn.getresponse()
             # raise an error if trying to get a prediction that isn't cached
             if response.status == 404:
+                self._logger.error("Prediction id={} not found.".format(p_id))
                 raise errors.PredictionNotFound
             # raise a cache error if a status other than OK is returned by JDG
             elif response.status != 200:
+                self._logger.error(
+                    "JDG could not get prediction id={}.".format(p_id))
                 raise errors.CacheError
             # parse the JSON string response
             result = json.loads(response.read())
             conn.close()
             return result
         except httplib.HTTPException:
-            print("Error connecting to JDG/Infinispan cache store")
+            self._logger.error("Error connecting to JDG cache store.")
 
     def update(self, prediction):
         try:
@@ -243,12 +266,17 @@ class InfinispanCache(Cache):
             response = conn.getresponse()
             # raise an error if trying to update an entry that doesn't exist
             if response.status == 404:
+                self._logger.error(
+                    "Prediction id={} not found.".format(prediction['id']))
                 raise errors.PredictionNotFound
             # raise a cache error if a status other than OK is returned by JDG
             elif response.status != 200:
+                self._logger.error(
+                    "JDG could not update prediction id={}.".format(
+                        prediction['id']))
                 raise errors.CacheError
         except httplib.HTTPException:
-            print("Error connecting to JDG/Infinispan cache store")
+            self._logger.error("Error connecting to JDG cache store.")
 
     def _format(self, p_id):
         """
@@ -269,6 +297,8 @@ class InfinispanCache(Cache):
             conn.close()
             # raise a cache error if a status other than OK is returned by JDG
             if response.status != 200:
+                self._logger.error(
+                    "JDG could not invalidate cache '{}'.".format(self._name))
                 raise errors.CacheError
         except httplib.HTTPException:
-            print("Error connecting to JDG/Infinispan cache store")
+            self._logger.error("Error connecting to JDG cache store.")
