@@ -1,9 +1,11 @@
 from abc import ABCMeta, abstractmethod
+import logger
 from model import Model
 import pymongo
 from pymongo import MongoClient
 from pyspark.mllib.common import _py2java
 from pyspark.mllib.recommendation import MatrixFactorizationModel
+import time
 import urlparse
 
 
@@ -44,6 +46,7 @@ class ModelReader:
         """
         self._sc = sc
         self._url = uri
+        self._logger = logger.get_logger()
 
     @abstractmethod
     def read(self, version):
@@ -94,9 +97,14 @@ class MongoModelReader(ModelReader):
     def __init__(self, sc, uri):
         super(MongoModelReader, self).__init__(sc=sc, uri=uri)
         client = MongoClient(self._url)
+        self._logger.debug(
+            "Initializing a MongoDB model reader (at {})".format(uri))
         self._db = client.models
 
     def read(self, version):
+        # current time for model loading benchmark
+        start_time = time.time()
+
         # read a serialized model with a specific version id
         data = list(self._db.models.find({'id': version}))
 
@@ -114,15 +122,26 @@ class MongoModelReader(ModelReader):
 
         # instantiate a Spark's `MatrixFactorizationModel` from the
         # latent factors RDDs
-        return self.instantiate(rank=rank,
-                                version=version,
-                                userFeatures=userFactors,
-                                productFeatures=productFactors)
+
+        _instantiated = self.instantiate(rank=rank,
+                                         version=version,
+                                         userFeatures=userFactors,
+                                         productFeatures=productFactors)
+
+        # time elapsed for model loading
+        elapsed_time = time.time() - start_time
+        self._logger.info(
+            "Model version {0} took {1} seconds to instantiate".format(version,
+                                                                       elapsed_time))  # noqa: E501
+
+        return _instantiated
 
     def readLatest(self):
         data = list(self._db.models.find().sort('created', pymongo.DESCENDING))
 
         version = data[0]['id']
+
+        self._logger.debug("Latest model found has id={}.".format(version))
 
         rank = data[0]['rank']
 
@@ -146,8 +165,9 @@ class MongoModelReader(ModelReader):
         :rtype: int
         """
         data = list(self._db.models.find().sort('created', pymongo.DESCENDING))
-
-        return data[0]['id']
+        version = data[0]['id']
+        self._logger.debug("Latest model found has id={}.".format(version))
+        return version
 
     @staticmethod
     def extractFeatures(data):
