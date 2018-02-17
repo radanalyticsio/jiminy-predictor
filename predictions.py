@@ -5,6 +5,7 @@ based prediction routines.
 """
 
 import datetime
+import logger
 import os
 import os.path
 from pyspark import sql as pysql
@@ -71,6 +72,9 @@ def loop(request_q, response_q):
 
     response_q.put('ready')  # let the main process know we are ready to start
 
+    # acquire logger
+    _logger = logger.get_logger()
+
     while True:
 
         # calculate how much time elapsed since the last model check
@@ -93,15 +97,20 @@ def loop(request_q, response_q):
         resp = req
 
         # preform a top-k rating for the specified user prediction
-        if 'topk' in req:
-            # make rank predictions
-            recommendations = model.als.recommendProducts(int(req['user']),
-                                                          int(req['topk']))
-            # update the cache store
-            resp.update(products=[
-                {'id': recommendation[1], 'rating': recommendation[2]}
-                for recommendation in recommendations
-            ])
+        if 'topk' in req:  # make rank predictions
+            # check if we have a valid user
+            if model.valid_user(req['user']):
+                recommendations = model.als.recommendProducts(int(req['user']),
+                                                              int(req['topk']))
+                # update the cache store
+                resp.update(products=[
+                    {'id': recommendation[1], 'rating': recommendation[2]}
+                    for recommendation in recommendations
+                ])
+            else:
+                _logger.error("Requesting rankings for invalid user id={}"
+                              .format(req['user']))
+                resp.update(products=[])
             response_q.put(resp)
 
         else:

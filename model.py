@@ -21,6 +21,10 @@ class Model:
         self._als_model = als_model
         self._version = version
         self._data_version = data_version
+        self._products = self._als_model.productFeatures()\
+            .map(lambda x: x[0]).cache()
+        self._users = self._als_model.userFeatures() \
+            .map(lambda x: x[0]).cache()
 
     @property
     def als(self):
@@ -33,3 +37,11 @@ class Model:
         """Getter method for the model's version
         """
         return self._version
+
+    def valid_user(self, user_id):
+        valid = self._users.filter(lambda x: x == user_id).count() > 0
+        print("user {} is {}".format(user_id, valid))
+        return valid
+
+    def valid_product(self, product_id):
+        return self._users.filter(lambda x: x == product_id).count() > 0
