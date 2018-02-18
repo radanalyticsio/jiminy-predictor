@@ -39,9 +39,7 @@ class Model:
         return self._version
 
     def valid_user(self, user_id):
-        valid = self._users.filter(lambda x: x == user_id).count() > 0
-        print("user {} is {}".format(user_id, valid))
-        return valid
+        return self._users.filter(lambda x: x == user_id).count() > 0
 
     def valid_product(self, product_id):
-        return self._users.filter(lambda x: x == product_id).count() > 0
+        return self._products.filter(lambda x: x == product_id).count() > 0
