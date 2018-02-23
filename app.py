@@ -3,7 +3,6 @@ import caches
 import flask
 from logger import get_logger
 import multiprocessing as mp
-import os
 import predictions
 import threading as t
 import views
@@ -14,10 +13,6 @@ def main():
 
     # acquire logger
     logger = get_logger()
-
-    # add the ALS type conversion Scala helper jar
-    os.environ[
-        'PYSPARK_SUBMIT_ARGS'] = '--jars ./libs/spark-als-serializer_2.11-0.2.jar pyspark-shell'  # noqa: E501
 
     # create the flask app object
     app = flask.Flask(__name__)
