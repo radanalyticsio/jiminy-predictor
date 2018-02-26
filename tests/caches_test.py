@@ -2,8 +2,10 @@
 
 This module contains test for cache store implementations
 """
-from caches import MemoryCache
-from nose.tools import assert_dict_equal, raises
+from caches import factory, InfinispanCache, MemoryCache
+from mock import Mock
+from nose.tools import assert_dict_equal, assert_true, raises
+import os
 import unittest
 
 from errors import PredictionNotFound, PredictionExists
@@ -22,6 +24,8 @@ class MemoryCacheTests(unittest.TestCase):
                                {'id': 200, 'rating': 4.5},
                                {'id': 201, 'rating': 2.3},
                            ]}
+        self.mock_invalidate = Mock()
+        InfinispanCache.invalidate = self.mock_invalidate
 
     def get_test(self):
         """Test if the prediction retrieved from cache is the same as the
@@ -65,3 +69,40 @@ class MemoryCacheTests(unittest.TestCase):
         self.cache.store(self.prediction)
         self.cache.invalidate()
         self.cache.get(1)
+
+    def instantiate_memory_default_test(self):
+        """If no environment data is provided for the cache backend,
+        use the memory store
+        """
+        os.environ['CACHE_TYPE'] = ''
+        cache = factory()
+        assert_true(isinstance(cache, MemoryCache))
+
+    def instantiate_memory_test(self):
+        """Passing the 'memory' type should instantiate a `MemoryCache`
+        """
+        os.environ['CACHE_TYPE'] = 'memory'
+        cache = factory()
+        assert_true(isinstance(cache, MemoryCache))
+
+    def instantiate_jdg_test(self):
+        """Passing the 'jdg' type should instantiate a `InfinispanCache`
+        """
+        os.environ['CACHE_TYPE'] = 'jdg'
+        cache = factory()
+        assert_true(isinstance(cache, InfinispanCache))
+
+    def instantiate_infinispan_test(self):
+        """Passing the 'infinispan' type should instantiate a `InfinispanCache`
+        """
+        os.environ['CACHE_TYPE'] = 'infinispan'
+        cache = factory()
+        assert_true(isinstance(cache, InfinispanCache))
+
+    def instantiate_other_test(self):
+        """Passing anything other than `memory`, `jdg` or `infinispan` will
+        create a `MemoryCache`
+        """
+        os.environ['CACHE_TYPE'] = 'foobar'
+        cache = factory()
+        assert_true(isinstance(cache, MemoryCache))
