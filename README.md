@@ -2,7 +2,7 @@
 
 # Jiminy Predictor
 
-This is the prediction service for the Jiminy project.
+This is the prediction service for the [Jiminy project](https://radanalytics.io/applications/project-jiminy).
 
 ## Setup
 
@@ -18,7 +18,7 @@ oc create -f https://radanalytics.io/resources.yaml
 
 The predictor can then instantiated by running
 
-```
+```bash
 oc new-app --template oshinko-pyspark-build-dc \
   -p GIT_URI=https://github.com/radanalyticsio/jiminy-predictor \
   -e MODEL_STORE_URI=mongodb://mongo:mongo@mongodb/models \
@@ -200,7 +200,6 @@ The resulting response would then include all `25` top rated products for user `
     {
       "id": 95021,
       "rating": 4.422838638920666
-    },
-    // ...
+    }
 }
 ```
