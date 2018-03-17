@@ -6,11 +6,16 @@ results.
 """
 import abc
 import errors
-import httplib
 import json
 import logger
 import os
 import threading as t
+
+import sys
+if sys.version_info[0] == 3:
+    import http.client as httplib
+else:
+    import httplib
 
 
 def get_arg(env, default):
