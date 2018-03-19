@@ -11,10 +11,9 @@ import logger
 import os
 import threading as t
 
-import sys
-if sys.version_info[0] == 3:
+try:
     import http.client as httplib
-else:
+except ImportError:
     import httplib
 
 
