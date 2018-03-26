@@ -24,6 +24,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+predictor/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -99,6 +100,6 @@ ENV/
 
 # mypy
 .mypy_cache/
-/recommender-rest-skeleton.iml
 /spark-warehouse/
 /.idea/
+*.iml
