@@ -33,3 +33,11 @@ class UtilsTests(unittest.TestCase):
         foo = get_arg(env='FOO', default='')
 
         assert_equal(foo, 'foo')
+
+    def get_args_default_test(self):
+        """Test if the returned args is the default if the env variable does
+        not exist
+        """
+        foo = get_arg(env='UNNECESSARILY_COMPLICATED_ENV_VAR', default='bar')
+
+        assert_equal(foo, 'bar')
